@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบลงเวลาและพิกัด GPS PES (38 ท่าน)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Sarabun', sans-serif; }</style>
+</head>
+<body class="bg-slate-100 min-h-screen py-6 px-4">
+
+  <div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="bg-blue-800 text-white rounded-2xl p-6 shadow-lg flex flex-col md:flex-row justify-between items-center gap-4">
+      <div>
+        <h1 class="text-2xl font-bold">ระบบบันทึกเวลาและพิกัด GPS PES</h1>
+        <p class="text-blue-200 text-sm mt-1">ล็อกบันทึก 1 ครั้ง/วัน | บันทึกเวลาและพิกัดอัตโนมัติ</p>
+      </div>
+      <div class="bg-blue-900/60 px-4 py-2.5 rounded-xl border border-blue-600 flex items-center gap-3">
+        <label class="text-sm font-semibold text-blue-100">เลือกวันที่ดูสรุป:</label>
+        <input type="date" id="selectedDate" class="bg-white text-gray-800 font-bold rounded-lg px-3 py-1.5 text-sm outline-none">
+      </div>
+    </div>
+
+    <!-- Daily Summary Dashboard -->
+    <div class="bg-white rounded-2xl p-5 shadow">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold text-gray-800">สรุปสถิติประจำวันที่ <span id="summaryDateLabel" class="text-blue-700"></span></h2>
+        <span class="text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1 rounded-full">พนักงานทั้งหมด 38 ท่าน</span>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+          <p class="text-xs font-semibold text-emerald-700">มาทำงานปกติ (O)</p>
+          <p id="statOnDuty" class="text-2xl font-bold text-emerald-800 mt-1">0</p>
+        </div>
+        <div class="bg-orange-50 border border-orange-200 rounded-xl p-3">
+          <p class="text-xs font-semibold text-orange-700">มาสาย (L)</p>
+          <p id="statLate" class="text-2xl font-bold text-orange-800 mt-1">0</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
+          <p class="text-xs font-semibold text-amber-700">ลางาน (A / P / S)</p>
+          <p id="statLeave" class="text-2xl font-bold text-amber-800 mt-1">0</p>
+          <p id="statLeaveDetail" class="text-[11px] text-amber-600 mt-0.5">พักร้อน 0 | กิจ 0 | ป่วย 0</p>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-xl p-3">
+          <p class="text-xs font-semibold text-red-700">ขาดงาน (X)</p>
+          <p id="statAbsent" class="text-2xl font-bold text-red-800 mt-1">0</p>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 col-span-2 md:col-span-1">
+          <p class="text-xs font-semibold text-slate-600">ยังไม่ลงเวลา</p>
+          <p id="statUnrecorded" class="text-2xl font-bold text-slate-700 mt-1">38</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-12 gap-6">
+      <!-- Form บันทึกเวลา -->
+      <div class="md:col-span-5 bg-white rounded-2xl shadow p-6">
+        <h2 class="text-lg font-bold text-gray-800 mb-1 border-b pb-2">ลงบันทึกเวลาทำงาน</h2>
+        <p class="text-xs text-red-600 mb-4 font-medium">* บันทึกได้วันละ 1 ครั้งเท่านั้น (ไม่สามารถแก้ไขได้)</p>
+        
+        <form id="attendanceForm" class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">1. เลือกชื่อพนักงาน (38 ท่าน)</label>
+            <select id="employee" required class="w-full border border-gray-300 rounded-xl p-3 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+              <option value="">-- กรุณาเลือกรหัสและชื่อพนักงาน --</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">2. สถานะ</label>
+            <div class="grid grid-cols-2 gap-2.5 text-sm">
+              <label class="border rounded-xl p-2.5 flex items-center space-x-2 cursor-pointer hover:bg-emerald-50 has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50">
+                <input type="radio" name="status" value="O" checked class="w-4 h-4 text-emerald-600">
+                <span class="font-semibold text-emerald-900">O - มาทำงาน</span>
+              </label>
+              <label class="border rounded-xl p-2.5 flex items-center space-x-2 cursor-pointer hover:bg-orange-50 has-[:checked]:border-orange-600 has-[:checked]:bg-orange-50">
+                <input type="radio" name="status" value="L" class="w-4 h-4 text-orange-600">
+                <span class="font-semibold text-orange-900">L - มาสาย</span>
+              </label>
+              <label class="border rounded-xl p-2.5 flex items-center space-x-2 cursor-pointer hover:bg-amber-50 has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50">
+                <input type="radio" name="status" value="A" class="w-4 h-4 text-amber-600">
+                <span class="font-semibold text-amber-900">A - ลาพักร้อน</span>
+              </label>
+              <label class="border rounded-xl p-2.5 flex items-center space-x-2 cursor-pointer hover:bg-blue-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50">
+                <input type="radio" name="status" value="P" class="w-4 h-4 text-blue-600">
+                <span class="font-semibold text-blue-900">P - ลากิจ</span>
+              </label>
+              <label class="border rounded-xl p-2.5 flex items-center space-x-2 cursor-pointer hover:bg-purple-50 has-[:checked]:border-purple-600 has-[:checked]:bg-purple-50">
+                <input type="radio" name="status" value="S" class="w-4 h-4 text-purple-600">
+                <span class="font-semibold text-purple-900">S - ลาป่วย</span>
+              </label>
+              <label class="border rounded-xl p-2.5 flex items-center space-x-2 cursor-pointer hover:bg-red-50 has-[:checked]:border-red-600 has-[:checked]:bg-red-50">
+                <input type="radio" name="status" value="X" class="w-4 h-4 text-red-600">
+                <span class="font-semibold text-red-900">X - ขาดงาน</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">3. สัดส่วนเวลา</label>
+            <select id="duration" class="w-full border border-gray-300 rounded-xl p-3 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+              <option value="เต็มวัน">เต็มวัน (ปกติ)</option>
+              <option value="1/2 (ครึ่งวัน)">1/2 (ครึ่งวัน)</option>
+              <option value="1/8 (1 ชม.)">1/8 (1 ชั่วโมง)</option>
+              <option value="4/8 (4 ชม.)">4/8 (4 ชั่วโมง)</option>
+              <option value="ไปศาล">ไปศาล</option>
+              <option value="Jp">Jp</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">4. หมายเหตุ (ถ้ามี)</label>
+            <input type="text" id="note" placeholder="ระบุหมายเหตุเพิ่มเติม..." class="w-full border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+
+          <!-- สถานะ GPS -->
+          <div class="bg-slate-50 border rounded-xl p-3 text-xs text-slate-600 flex items-center justify-between">
+            <span id="gpsStatusText">📍 พร้อมตรวจจับพิกัด GPS อัตโนมัติ</span>
+            <button type="button" onclick="getGPS()" class="text-blue-600 font-bold underline">รีเฟรชพิกัด</button>
+          </div>
+
+          <button type="submit" id="submitBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow transition">
+            บันทึกเวลาทำงาน
+          </button>
+        </form>
+      </div>
+
+      <!-- ตารางรายการประจำวัน -->
+      <div class="md:col-span-7 bg-white rounded-2xl shadow p-6 flex flex-col">
+        <div class="flex flex-wrap justify-between items-center gap-2 mb-4 border-b pb-2">
+          <h2 class="text-lg font-bold text-gray-800">รายการบันทึกประจำวัน (<span id="dailyCountBadge">0</span>/38)</h2>
+          <div class="flex gap-2">
+            <button onclick="exportDailySummaryCSV()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg font-semibold">
+              ดาวน์โหลดสรุปรายวัน
+            </button>
+            <button onclick="exportAllCSV()" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg font-semibold">
+              ดาวน์โหลดประวัติทั้งหมด
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-y-auto max-h-[420px] border rounded-xl flex-grow">
+          <table class="w-full text-sm text-left">
+            <thead class="bg-slate-100 text-slate-700 sticky top-0">
+              <tr>
+                <th class="p-3">ชื่อพนักงาน</th>
+                <th class="p-3">สถานะ</th>
+                <th class="p-3">เวลา / พิกัด GPS</th>
+              </tr>
+            </thead>
+            <tbody id="logTableBody" class="divide-y"></tbody>
+          </table>
+        </div>
+
+        <!-- รายชื่อคนที่ยังไม่ได้ลงเวลา -->
+        <details class="mt-4 bg-slate-50 rounded-xl p-3 border text-sm">
+          <summary class="font-semibold text-slate-700 cursor-pointer">ดูรายชื่อผู้ที่ยังไม่ได้ลงเวลาในวันนี้ (<span id="missingCountText">38</span> ท่าน)</summary>
+          <div id="missingEmployeeList" class="mt-2 text-xs text-slate-600 grid grid-cols-2 gap-1.5 pt-2 border-t"></div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const employees = [
+      { id: "102911", name: "นาย อาทิตย์ บุญมั่งมี" },
+      { id: "34876", name: "นาย ประเทือง ศรีบุศราคัม" },
+      { id: "40741", name: "นาย นิวัฒน์ ปานวิเศษ" },
+      { id: "104560", name: "นาย กวิตม์ ธีระชุนห์" },
+      { id: "100969", name: "นาย คำเส็ง เห็มกอง" },
+      { id: "102285", name: "นาย สำรอง ทองนวล" },
+      { id: "102484", name: "นาย สันติ พ่อค้า" },
+      { id: "109025", name: "นาย พีระดล บุญที" },
+      { id: "109528", name: "นาย นภดล จันทร์อยู่จริง" },
+      { id: "110690", name: "นาย พรวุฒิ ปัญญาจงเลิศ" },
+      { id: "29629", name: "น.ส. พัชรธร ไม้แก่นสาร" },
+      { id: "37143", name: "นาย ปวิชญา เปรมเพ็ชร์" },
+      { id: "54254", name: "นาย จำปี บุตตะกะ" },
+      { id: "66225", name: "นาย กิตติศักดิ์ ถนอมสุข" },
+      { id: "101074", name: "นาย ธวัชชัย คุณสมบัติ" },
+      { id: "102235", name: "นาย เสริฐ ต่อด่านกลาง" },
+      { id: "103663", name: "นาย นเรศ กิจเฉย" },
+      { id: "110296", name: "นาย รัฐวุฒิ ศรีธราดล" },
+      { id: "111468", name: "นาย ฐิติวุฒิ ศกุนะสิงห์" },
+      { id: "705717", name: "น.ส. ธิดารัตน์ อาจแก้ว" },
+      { id: "19026", name: "นาย กิตติพงศ์ พลายแก้ว" },
+      { id: "56937", name: "นาย ชัยยนต์ เทียมทัศน์" },
+      { id: "101376", name: "นาย นพดล จีนดวน" },
+      { id: "102277", name: "นาย ธนากร แสงพระทิตย์" },
+      { id: "106083", name: "นาย ศรนรินทร์ แมดจ่อง" },
+      { id: "108038", name: "นาย เอกลักษณ์ เต็นเกิดผล" },
+      { id: "46367", name: "นาย ประเสริฐ เพียรวรรณวณิช" },
+      { id: "54288", name: "นาย พัฒนา พันลุตัน" },
+      { id: "100593", name: "นาย ชนชน ไมตรี" },
+      { id: "109652", name: "นาย อาทิตย์ จิตชยานนท์กุล" },
+      { id: "63313", name: "นาย ประโยชน์ บุญล้อม" },
+      { id: "103220", name: "นาย ภิญโญ โสมีชัย" },
+      { id: "103225", name: "นาย ศักดิ์ดา ตาดี" },
+      { id: "104788", name: "นาย นันทกร พรมโนนศรี" },
+      { id: "105757", name: "นาย ธวัชชัย ถนอมตน" },
+      { id: "107813", name: "นาย ณรงค์ คำหมี" },
+      { id: "108202", name: "นาย คีรีเขต นาเหล็ก" },
+      { id: "110588", name: "นาย อดิสร สมสอน" }
+    ];
+
+    const statusInfo = {
+      O: { label: "มาทำงาน (O)", badge: "bg-emerald-100 text-emerald-800" },
+      L: { label: "มาสาย (L)", badge: "bg-orange-100 text-orange-800" },
+      A: { label: "ลาพักร้อน (A)", badge: "bg-amber-100 text-amber-800" },
+      P: { label: "ลากิจ (P)", badge: "bg-blue-100 text-blue-800" },
+      S: { label: "ลาป่วย (S)", badge: "bg-purple-100 text-purple-800" },
+      X: { label: "ขาดงาน (X)", badge: "bg-red-100 text-red-800" }
+    };
+
+    const empSelect = document.getElementById('employee');
+    employees.forEach(emp => {
+      const opt = document.createElement('option');
+      opt.value = `${emp.id}|${emp.name}`;
+      opt.textContent = `${emp.id} - ${emp.name}`;
+      empSelect.appendChild(opt);
+    });
+
+    const dateInput = document.getElementById('selectedDate');
+    const todayStr = new Date().toISOString().split('T')[0];
+    dateInput.value = todayStr;
+
+    let currentLat = "-";
+    let currentLng = "-";
+    let logs = JSON.parse(localStorage.getItem('pes_logs_v3') || '[]');
+
+    function getGPS() {
+      const gpsText = document.getElementById('gpsStatusText');
+      if (navigator.geolocation) {
+        gpsText.textContent = "📍 กำลังค้นหาพิกัด GPS...";
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            currentLat = position.coords.latitude.toFixed(6);
+            currentLng = position.coords.longitude.toFixed(6);
+            gpsText.textContent = `📍 พิกัด: ${currentLat}, ${currentLng}`;
+          },
+          (error) => {
+            gpsText.textContent = "⚠️ ไม่สามารถดึงพิกัดได้ (ใช้ค่าจำลองหรืออนุญาตสิทธิ์)";
+            currentLat = "13.756300"; // ค่าพิกัดสำรองกรุงเทพฯ
+            currentLng = "100.501800";
+          },
+          { timeout: 10000 }
+        );
+      } else {
+        gpsText.textContent = "⚠️ เบราว์เซอร์ไม่รองรับ GPS";
+      }
+    }
+
+    // เรียกดึง GPS ทันทีที่เปิดหน้าเว็บ
+    getGPS();
+    dateInput.addEventListener('change', renderDashboard);
+
+    document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const [empId, empName] = empSelect.value.split('|');
+      const date = new Date().toISOString().split('T')[0]; // ล็อกให้บันทึกเฉพาะ "วันปัจจุบัน" ป้องกันย้อนหลัง
+      const status = document.querySelector('input[name="status"]:checked').value;
+      const duration = document.getElementById('duration').value;
+      const note = document.getElementById('note').value;
+      const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      // ** กฎ: ตรวจสอบว่าพนักงานคนนี้บันทึกของวันนี้ไปแล้วหรือยัง (ห้ามบันทึกซ้ำ / ห้ามแก้ไข) **
+      const alreadyRecorded = logs.some(r => r.date === date && r.empId === empId);
+      if (alreadyRecorded) {
+        alert(`❌ คุณ (${empName}) ได้บันทึกเวลาของวันนี้ไปเรียบร้อยแล้ว\nระบบไม่อนุญาตให้บันทึกซ้ำหรือแก้ไขครับ`);
+        return;
+      }
+
+      const record = { 
+        date, 
+        empId, 
+        empName, 
+        status, 
+        duration, 
+        note, 
+        time: timeStr,
+        lat: currentLat,
+        lng: currentLng 
+      };
+
+      logs.unshift(record);
+      localStorage.setItem('pes_logs_v3', JSON.stringify(logs));
+      document.getElementById('note').value = '';
+      renderDashboard();
+      alert(`✅ บันทึกเวลาทำงานของ ${empName} สำเร็จ!\nเวลา: ${timeStr} | พิกัด: ${currentLat}, ${currentLng}`);
+    });
+
+    function renderDashboard() {
+      const targetDate = dateInput.value;
+      document.getElementById('summaryDateLabel').textContent = targetDate;
+
+      const dailyLogs = logs.filter(r => r.date === targetDate);
+
+      const countO = dailyLogs.filter(r => r.status === 'O').length;
+      const countL = dailyLogs.filter(r => r.status === 'L').length;
+      const countA = dailyLogs.filter(r => r.status === 'A').length;
+      const countP = dailyLogs.filter(r => r.status === 'P').length;
+      const countS = dailyLogs.filter(r => r.status === 'S').length;
+      const countLeave = countA + countP + countS;
+      const countX = dailyLogs.filter(r => r.status === 'X').length;
+      const countUnrecorded = employees.length - dailyLogs.length;
+
+      document.getElementById('statOnDuty').textContent = countO;
+      document.getElementById('statLate').textContent = countL;
+      document.getElementById('statLeave').textContent = countLeave;
+      document.getElementById('statLeaveDetail').textContent = `พักร้อน ${countA} | กิจ ${countP} | ป่วย ${countS}`;
+      document.getElementById('statAbsent').textContent = countX;
+      document.getElementById('statUnrecorded').textContent = Math.max(0, countUnrecorded);
+      document.getElementById('dailyCountBadge').textContent = dailyLogs.length;
+
+      const tbody = document.getElementById('logTableBody');
+      if (dailyLogs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-gray-400">ยังไม่มีข้อมูลการลงเวลาในวันที่เลือก</td></tr>`;
+      } else {
+        tbody.innerHTML = dailyLogs.map(r => `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3 font-medium text-gray-800">${r.empId} - ${r.empName}</td>
+            <td class="p-3"><span class="px-2 py-1 rounded-md text-xs font-bold ${statusInfo[r.status].badge}">${statusInfo[r.status].label}</span></td>
+            <td class="p-3 text-xs text-gray-600">
+              🕒 <b>${r.time}</b><br>
+              📍 <a href="https://maps.google.com/?q=${r.lat},${r.lng}" target="_blank" class="text-blue-600 underline">${r.lat}, ${r.lng}</a>
+              ${r.note ? `<br><span class="text-gray-500">หมายเหตุ: ${r.note}</span>` : ''}
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      const recordedIds = new Set(dailyLogs.map(r => r.empId));
+      const missingEmps = employees.filter(e => !recordedIds.has(e.id));
+      document.getElementById('missingCountText').textContent = missingEmps.length;
+      document.getElementById('missingEmployeeList').innerHTML = missingEmps.map(e => `
+        <div>• ${e.id} ${e.name}</div>
+      `).join('');
+    }
+
+    function exportAllCSV() {
+      if (logs.length === 0) return alert('ยังไม่มีข้อมูลสำหรับดาวน์โหลด');
+      let csv = '\uFEFFวันที่,รหัสพนักงาน,ชื่อ-นามสกุล,สถานะ,สัดส่วนเวลา,หมายเหตุ,เวลาที่กด,ละติจูด,ลองจิจูด\n';
+      logs.forEach(r => {
+        csv += `"${r.date}","${r.empId}","${r.empName}","${statusInfo[r.status].label}","${r.duration}","${r.note}","${r.time}","${r.lat}","${r.lng}"\n`;
+      });
+      downloadBlob(csv, `PES_Attendance_GPS_All.csv`);
+    }
+
+    function exportDailySummaryCSV() {
+      const targetDate = dateInput.value;
+      const dailyLogs = logs.filter(r => r.date === targetDate);
+      let csv = `\uFEFFสรุปการมาทำงานและพิกัด GPS PES ประจำวันที่ ${targetDate}\n`;
+      csv += `รหัสพนักงาน,ชื่อ-นามสกุล,สถานะ,เวลาที่บันทึก,พิกัด GPS,หมายเหตุ\n`;
+      employees.forEach(emp => {
+        const rec = dailyLogs.find(r => r.empId === emp.id);
+        if (rec) {
+          csv += `"${emp.id}","${emp.name}","${statusInfo[rec.status].label}","${rec.time}","${rec.lat}, ${rec.lng}","${rec.note}"\n`;
+        } else {
+          csv += `"${emp.id}","${emp.name}","ยังไม่ลงเวลา","-","-","-"\n`;
+        }
+      });
+      downloadBlob(csv, `PES_Daily_Summary_GPS_${targetDate}.csv`);
+    }
+
+    function downloadBlob(csvContent, fileName) {
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      link.click();
+    }
+
+    renderDashboard();
+  </script>
+</body>
+</html>
