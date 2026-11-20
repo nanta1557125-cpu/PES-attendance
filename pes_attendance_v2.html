@@ -1,0 +1,85 @@
+function doPost(e) {
+  var lock = LockService.getScriptLock();
+  // ล็อกระบบชั่วคราวเพื่อป้องกันการกดบันทึกพร้อมกันหลายคน (Concurrency Control)
+  lock.tryLock(10000);
+  
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    
+    // ตรวจสอบว่ามีข้อมูลในชีตหรือยัง
+    var lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      var rows = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+      
+      for (var i = 0; i < rows.length; i++) {
+        var existingDate = new Date(rows[i][1]).toISOString().split('T')[0];
+        var incomingDate = new Date(data.date).toISOString().split('T')[0];
+        
+        // เช็คว่าพนักงานคนนี้ลงเวลาของวันนี้ไปแล้วหรือยัง
+        if (existingDate === incomingDate && String(rows[i][2]) === String(data.empId)) {
+          lock.releaseLock();
+          return ContentService.createTextOutput(JSON.stringify({
+            "status": "error", 
+            "message": "คุณได้บันทึกเวลาของวันนี้ไปแล้ว ไม่อนุญาตให้บันทึกซ้ำ"
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+    }
+    
+    // บันทึกข้อมูลลง Google Sheets แถวใหม่
+    sheet.appendRow([
+      new Date(),
+      data.date,
+      data.empId,
+      data.empName,
+      data.status,
+      data.duration,
+      data.note,
+      data.time,
+      data.lat,
+      data.lng
+    ]);
+    
+    lock.releaseLock();
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "success", 
+      "message": "บันทึกข้อมูลสำเร็จ"
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch(error) {
+    lock.releaseLock();
+    return ContentService.createTextOutput(JSON.stringify({
+      "status": "error", 
+      "message": error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var lastRow = sheet.getLastRow();
+  var result = [];
+  
+  if (lastRow > 1) {
+    var rows = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+    
+    for (var i = 0; i < rows.length; i++) {
+      result.push({
+        timestamp: rows[i][0],
+        date: rows[i][1],
+        empId: String(rows[i][2]),
+        empName: rows[i][3],
+        status: rows[i][4],
+        duration: rows[i][5],
+        note: rows[i][6],
+        time: rows[i][7],
+        lat: rows[i][8],
+        lng: rows[i][9]
+      });
+    }
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
