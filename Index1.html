@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบลงเวลาทำงาน PES</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Sarabun', sans-serif; }</style>
+</head>
+<body class="bg-slate-100 min-h-screen py-6 px-4">
+
+  <div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header & Navigation -->
+    <div class="bg-blue-800 text-white rounded-2xl p-6 shadow-lg flex flex-col md:flex-row justify-between items-center gap-4">
+      <div>
+        <h1 class="text-2xl font-bold">ระบบบันทึกเวลาและพิกัด GPS PES</h1>
+        <p class="text-blue-200 text-sm mt-1">ฐานข้อมูลออนไลน์กลาง | กำหนดเข้างานก่อน 07:30 น.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="switchTab('employee')" id="btnTabEmp" class="bg-white text-blue-900 font-bold px-4 py-2 rounded-xl text-sm shadow">หน้าพนักงาน</button>
+        <button onclick="switchTab('executive')" id="btnTabExec" class="bg-blue-900 text-blue-200 font-bold px-4 py-2 rounded-xl text-sm border border-blue-600">หน้าผู้บริหาร</button>
+      </div>
+    </div>
+
+    <!-- ==================== หน้าที่ 1: พนักงาน ==================== -->
+    <div id="viewEmployee" class="space-y-6">
+      <div class="bg-white rounded-2xl p-5 shadow">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-2">
+          <h2 class="text-lg font-bold text-gray-800">สรุปสถิติประจำวันที่ <span id="summaryDateLabel" class="text-blue-700"></span></h2>
+          <div class="flex items-center gap-2">
+            <input type="date" id="selectedDate" class="bg-slate-100 text-gray-800 font-bold rounded-lg px-3 py-1.5 text-sm outline-none border">
+            <span class="text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-2 rounded-lg">พนักงานทั้งหมด <span id="totalEmpBadge">0</span> ท่าน</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+          <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+            <p class="text-xs font-semibold text-emerald-700">มาทำงาน / มาสาย</p>
+            <p id="statOnDuty" class="text-2xl font-bold text-emerald-800 mt-1">0</p>
+          </div>
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <p class="text-xs font-semibold text-amber-700">ลางานทั้งหมด</p>
+            <p id="statLeave" class="text-2xl font-bold text-amber-800 mt-1">0</p>
+            <p id="statLeaveDetail" class="text-[11px] text-amber-600 mt-0.5">พักร้อน 0 | กิจ 0 | ป่วย 0</p>
+          </div>
+          <div class="bg-red-50 border border-red-200 rounded-xl p-3">
+            <p class="text-xs font-semibold text-red-700">ขาดงาน (X)</p>
+            <p id="statAbsent" class="text-2xl font-bold text-red-800 mt-1">0</p>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3">
+            <p class="text-xs font-semibold text-slate-600">ยังไม่ลงในระบบ</p>
+            <p id="statUnrecorded" class="text-2xl font-bold text-slate-700 mt-1">0</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-12 gap-6">
+        <!-- Form ลงเวลา -->
+        <div class="md:col-span-5 bg-white rounded-2xl shadow p-6">
+          <h2 class="text-lg font-bold text-gray-800 mb-1 border-b pb-2">ลงบันทึกเวลาทำงาน</h2>
+          <p class="text-xs text-red-600 mb-4 font-medium">* บันทึกได้วันละ 1 ครั้ง (กำหนดก่อน 07:30 น.)</p>
+          
+          <form id="attendanceForm" class="space-y-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">1. เลือกชื่อพนักงาน</label>
+              <select id="employee" required class="w-full border border-gray-300 rounded-xl p-3 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                <option value="">-- กรุณาเลือกรหัสและชื่อพนักงาน --</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">2. สถานะ</label>
+              <div class="grid grid-cols-2 gap-2 text-sm">
+                <label class="border rounded-xl p-2.5 flex items-center space-x-2 cursor-pointer hover:bg-emerald-50 has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50">
+                  <input type="radio" name="status" value="O" checked class="w-4 h-4 text-emerald-600"><span class="font-semibold text-emerald-900">O - มาทำงาน</span>
+                </label>
+                <label class="border rounded-xl p-2.5 flex items-center space-x-2 cursor-pointer hover:bg-orange-50 has-[:checked]:border-orange-600 has-[:checked]:bg-orange-50">
+                  <input type="radio" name="status" value="L" class="w-4 h-4 text-orange-600"><span class="font-semibold text-orange-900">L - มาสาย</span>
+                </label>
+                <label class="border rounded-xl p-2.5 flex items-center space-x-2 cursor-pointer hover:bg-amber-50 has-[:checked]:border-amber-600 has-[:checked]:bg-amber-50">
+                  <input type="radio" name="status" value="A" class="w-4 h-4 text-amber-600"><span class="font-semibold text-amber-900">A - ลาพักร้อน</span>
+                </label>
+                <label class="border rounded-xl p-2.5 flex items-center space-x-2 cursor-pointer hover:bg-blue-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50">
+                  <input type="radio" name="status" value="P" class="w-4 h-4 text-blue-600"><span class="font-semibold text-blue-900">P - ลากิจ</span>
+                </label>
+                <label class="border rounded-xl p-2.5 flex items-center space-x-2 cursor-pointer hover:bg-purple-50 has-[:checked]:border-purple-600 has-[:checked]:bg-purple-50">
+                  <input type="radio" name="status" value="S" class="w-4 h-4 text-purple-600"><span class="font-semibold text-purple-900">S - ลาป่วย</span>
+                </label>
+                <label class="border rounded-xl p-2.5 flex items-center space-x-2 cursor-pointer hover:bg-red-50 has-[:checked]:border-red-600 has-[:checked]:bg-red-50">
+                  <input type="radio" name="status" value="X" class="w-4 h-4 text-red-600"><span class="font-semibold text-red-900">X - ขาดงาน</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">3. สัดส่วนเวลา</label>
+              <select id="duration" class="w-full border border-gray-300 rounded-xl p-3 bg-white outline-none text-sm">
+                <option value="เต็มวัน">เต็มวัน (ปกติ)</option>
+                <option value="1/2 (ครึ่งวัน)">1/2 (ครึ่งวัน)</option>
+                <option value="1/8 (1 ชม.)">1/8 (1 ชั่วโมง)</option>
+                <option value="4/8 (4 ชม.)">4/8 (4 ชั่วโมง)</option>
+                <option value="ไปศาล">ไปศาล</option>
+                <option value="Jp">Jp</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">4. หมายเหตุ (ถ้ามี)</label>
+              <input type="text" id="note" placeholder="ระบุหมายเหตุเพิ่มเติม..." class="w-full border border-gray-300 rounded-xl p-3 text-sm outline-none">
+            </div>
+
+            <div class="bg-slate-50 border rounded-xl p-3 text-xs text-slate-600 flex items-center justify-between">
+              <span id="gpsStatusText">📍 กำลังตรวจจับพิกัด GPS...</span>
+              <button type="button" onclick="getGPS()" class="text-blue-600 font-bold underline">รีเฟรช</button>
+            </div>
+
+            <button type="submit" id="submitBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow transition">
+              บันทึกเวลาทำงาน
+            </button>
+          </form>
+        </div>
+
+        <!-- รายการและผู้ยังไม่ลงเวลา -->
+        <div class="md:col-span-7 bg-white rounded-2xl shadow p-6 flex flex-col">
+          <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h2 class="text-lg font-bold text-gray-800">ผู้ที่ยังไม่ลงในวันนี้ (<span id="missingCountText">0</span> ท่าน)</h2>
+            <button onclick="loadData()" class="text-xs bg-blue-600 text-white px-3 py-2 rounded-lg font-semibold">🔄 รีเฟรช</button>
+          </div>
+
+          <div id="missingEmployeeList" class="text-xs text-slate-700 grid grid-cols-2 gap-2 max-h-[180px] overflow-y-auto border p-3 rounded-xl bg-slate-50 mb-4"></div>
+
+          <h2 class="text-sm font-bold text-gray-800 mb-2">รายชื่อผู้ลาและรายละเอียดวันนี้</h2>
+          <div class="overflow-y-auto max-h-[220px] border rounded-xl flex-grow">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-slate-100 text-slate-700 sticky top-0">
+                <tr>
+                  <th class="p-2.5">ชื่อพนักงาน</th>
+                  <th class="p-2.5">สถานะ/ประเภทลา</th>
+                  <th class="p-2.5">เวลา/เกณฑ์</th>
+                </tr>
+              </thead>
+              <tbody id="leaveTableBody" class="divide-y">
+                <tr><td colspan="3" class="p-4 text-center text-gray-400">กำลังโหลดข้อมูล...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== หน้าที่ 2: ผู้บริหาร ==================== -->
+    <div id="viewExecutive" class="hidden space-y-6">
+      <div id="execLoginCard" class="bg-white rounded-2xl shadow p-8 max-w-md mx-auto text-center space-y-4">
+        <h2 class="text-xl font-bold text-gray-800">🔒 สำหรับผู้บริหารเท่านั้น</h2>
+        <p class="text-xs text-gray-500">กรุณากรอกอีเมลเพื่อตรวจสอบสิทธิ์การเข้าถึงข้อมูลพิกัดและเวลาเซิร์ฟเวอร์</p>
+        <input type="email" id="execEmailInput" placeholder="ระบุอีเมลผู้บริหารของคุณ..." class="w-full border rounded-xl p-3 text-sm outline-none text-center">
+        <button onclick="verifyExecutive()" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-bold py-3 rounded-xl shadow">ตรวจสอบสิทธิ์เข้าใช้งาน</button>
+      </div>
+
+      <div id="execContentPanel" class="hidden bg-white rounded-2xl shadow p-6 space-y-4">
+        <div class="flex justify-between items-center border-b pb-3">
+          <div>
+            <h2 class="text-lg font-bold text-gray-800">รายงานตรวจสอบเวลาและพิกัดโรงงานเชิงลึก</h2>
+            <p class="text-xs text-slate-500">แสดงเวลาจริงจากเซิร์ฟเวอร์และการตรวจจับพื้นที่รัศมี 200 เมตร</p>
+          </div>
+          <button onclick="logoutExec()" class="text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-lg font-semibold">ออกจากระบบ</button>
+        </div>
+
+        <div class="overflow-x-auto border rounded-xl max-h-[500px]">
+          <table class="w-full text-xs text-left">
+            <thead class="bg-slate-100 text-slate-700 sticky top-0">
+              <tr>
+                <th class="p-3">รหัส-ชื่อพนักงาน</th>
+                <th class="p-3">สถานะ</th>
+                <th class="p-3">เวลาเซิร์ฟเวอร์</th>
+                <th class="p-3">กำหนด (07:30)</th>
+                <th class="p-3">พื้นที่โรงงาน (200ม.)</th>
+              </tr>
+            </thead>
+            <tbody id="execTableBody" class="divide-y"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WEB_APP_URL = "วาง_WEB_APP_URL_ของคุณที่นี่";
+    
+    // กำหนดอีเมลผู้บริหารที่มีสิทธิ์ดูหน้า 2
+    const ALLOWED_EXECUTIVES = ["********@******.**.**"]; // แทนที่ด้วยอีเมลจริง
+
+    // พิกัดโรงงานจริง และรัศมี (เมตร)
+    const FACTORY_LAT = 13.xxxxxx95; // ใส่ตัวเลขจริงที่ซ่อนไว้
+    const FACTORY_LNG = 100.xxxxxx5; // ใส่ตัวเลขจริงที่ซ่อนไว้
+    const ALLOWED_RADIUS = 200; 
+
+    const employees = [
+      { id: "102911", name: "นาย อาทิตย์ บุญมั่งมี" },
+      { id: "40741", name: "นาย นิวัฒน์ ปานวิเศษ" },
+      { id: "104560", name: "นาย กวิตม์ ธีระชุนห์" },
+      { id: "102285", name: "นาย สำรอง ทองนวล" },
+      { id: "102484", name: "นาย สันติ พ่อค้า" },
+      { id: "109528", name: "นาย นภดล จันทร์อยู่จริง" },
+      { id: "110690", name: "นาย พรวุฒิ ปัญญาจงเลิศ" },
+      { id: "29629", name: "น.ส. พัชรธร ไม้แก่นสาร" },
+      { id: "37143", name: "นาย ปวิชญา เปรมเพ็ชร์" },
+      { id: "54254", name: "นาย จำปี บุตตะกะ" },
+      { id: "66225", name: "นาย กิตติศักดิ์ ถนอมสุข" },
+      { id: "101074", name: "นาย ธวัชชัย คุณสมบัติ" },
+      { id: "102235", name: "นาย เสริฐ ต่อด่านกลาง" },
+      { id: "103663", name: "นาย นเรศ กิจเฉย" },
+      { id: "110296", name: "นาย รัฐวุฒิ ศรีธราดล" },
+      { id: "111468", name: "นาย ฐิติวุฒิ ศกุนะสิงห์" },
+      { id: "705717", name: "น.ส. ธิดารัตน์ อาจแก้ว" },
+      { id: "19026", name: "นาย กิตติพงศ์ พลายแก้ว" },
+      { id: "101376", name: "นาย นพดล จีนดวน" },
+      { id: "102277", name: "นาย ธนากร แสงพระทิตย์" },
+      { id: "106083", name: "นาย ศรนรินทร์ แมดจ่อง" },
+      { id: "108038", name: "นาย เอกลักษณ์ เต็นเกิดผล" },
+      { id: "46367", name: "นาย ประเสริฐ เพียรวรรณวณิช" },
+      { id: "100593", name: "นาย ชนชน ไมตรี" },
+      { id: "109652", name: "นาย อาทิตย์ จิตชยานนท์กุล" },
+      { id: "63313", name: "นาย ประโยชน์ บุญล้อม" },
+      { id: "103220", name: "นาย ภิญโญ โสมีชัย" },
+      { id: "103225", name: "นาย ศักดิ์ดา ตาดี" },
+      { id: "104788", name: "นาย นันทกร พรมโนนศรี" },
+      { id: "105757", name: "นาย ธวัชชัย ถนอมตน" },
+      { id: "107813", name: "นาย ณรงค์ คำหมี" },
+      { id: "108202", name: "นาย คีรีเขต นาเหล็ก" },
+      { id: "110588", name: "นาย อดิสร สมสอน" }
+    ];
+
+    document.getElementById('totalEmpBadge').textContent = employees.length;
+    const empSelect = document.getElementById('employee');
+    employees.forEach(e => {
+      let opt = document.createElement('option');
+      opt.value = `${e.id}|${e.name}`;
+      opt.textContent = `${e.id} - ${e.name}`;
+      empSelect.appendChild(opt);
+    });
+
+    const dateInput = document.getElementById('selectedDate');
+    dateInput.value = new Date().toISOString().split('T')[0];
+    dateInput.addEventListener('change', loadData);
+
+    let currentLat = null;
+    let currentLng = null;
+    let globalLogs = [];
+
+    function getGPS() {
+      const statusText = document.getElementById('gpsStatusText');
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            currentLat = pos.coords.latitude;
+            currentLng = pos.coords.longitude;
+            statusText.textContent = `📍 พิกัดพร้อมใช้งาน (ความแม่นยำ ±${Math.round(pos.coords.accuracy)}ม.)`;
+          },
+          err => {
+            statusText.textContent = "⚠️ ยืนยันตำแหน่งไม่ได้ (ไม่พบสัญญาณ GPS)";
+            currentLat = null;
+            currentLng = null;
+          },
+          { timeout: 10000, enableHighAccuracy: true }
+        );
+      } else {
+        statusText.textContent = "⚠️ เบราว์เซอร์ไม่รองรับ GPS";
+      }
+    }
+    getGPS();
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      if(!lat1 || !lon1 || !lat2 || !lon2) return null;
+      var R = 6371000; // Radius of earth in meters
+      var dLat = (lat2-lat1) * Math.PI / 180;
+      var dLon = (lon2-lon1) * Math.PI / 180;
+      var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c; // Distance in meters
+    }
+
+    function loadData() {
+      if(WEB_APP_URL.includes("วาง_WEB_APP")) return;
+      fetch(WEB_APP_URL)
+        .then(res => res.json())
+        .then(data => {
+          globalLogs = data;
+          renderDashboard();
+        }).catch(err => console.log(err));
+    }
+
+    document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      if(WEB_APP_URL.includes("วาง_WEB_APP")) { alert("กรุณาใส่ Web App URL"); return; }
+
+      const [empId, empName] = empSelect.value.split('|');
+      const date = new Date().toISOString().split('T')[0];
+      const status = document.querySelector('input[name="status"]:checked').value;
+      const duration = document.getElementById('duration').value;
+      const note = document.getElementById('note').value;
+      const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      const payload = {
+        date, empId, empName, status, duration, note, time: timeStr,
+        lat: currentLat !== null ? currentLat : "",
+        lng: currentLng !== null ? currentLng : ""
+      };
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = "กำลังบันทึก...";
+
+      fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) })
+        .then(res => res.json())
+        .then(res => {
+          btn.disabled = false;
+          btn.textContent = "บันทึกเวลาทำงาน";
+          if(res.status === "success") {
+            alert("✅ บันทึกเวลาเรียบร้อย!");
+            document.getElementById('note').value = "";
+            loadData();
+          } else { alert("❌ " + res.message); }
+        }).catch(err => {
+          btn.disabled = false;
+          btn.textContent = "บันทึกเวลาทำงาน";
+          alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+        });
+    });
+
+    function renderDashboard() {
+      const targetDate = dateInput.value;
+      document.getElementById('summaryDateLabel').textContent = targetDate;
+      const logs = globalLogs.filter(r => r.date === targetDate);
+
+      const oCount = logs.filter(r => r.status === 'O' || r.status === 'L').length;
+      const aCount = logs.filter(r => r.status === 'A').length;
+      const pCount = logs.filter(r => r.status === 'P').length;
+      const sCount = logs.filter(r => r.status === 'S').length;
+      const leaveTotal = aCount + pCount + sCount;
+      const xCount = logs.filter(r => r.status === 'X').length;
+      const unrecordedCount = employees.length - logs.length;
+
+      document.getElementById('statOnDuty').textContent = oCount;
+      document.getElementById('statLeave').textContent = leaveTotal;
+      document.getElementById('statLeaveDetail').textContent = `พักร้อน ${aCount} | กิจ ${pCount} | ป่วย ${sCount}`;
+      document.getElementById('statAbsent').textContent = xCount;
+      document.getElementById('statUnrecorded').textContent = Math.max(0, unrecordedCount);
+
+      const recordedIds = new Set(logs.map(r => String(r.empId)));
+      const missing = employees.filter(e => !recordedIds.has(e.id));
+      document.getElementById('missingCountText').textContent = missing.length;
+      document.getElementById('missingEmployeeList').innerHTML = missing.map(e => `<div>• ${e.id} ${e.name}</div>`).join('') || '<div class="text-gray-400">ลงครบทุกคนแล้ว</div>';
+
+      const statusMap = { O: "มาทำงาน", L: "มาสาย", A: "ลาพักร้อน", P: "ลากิจ", S: "ลาป่วย", X: "ขาดงาน" };
+      const tbody = document.getElementById('leaveTableBody');
+      tbody.innerHTML = logs.map(r => `
+        <tr class="hover:bg-slate-50">
+          <td class="p-2.5 font-medium">${r.empId} - ${r.empName}</td>
+          <td class="p-2.5"><span class="px-2 py-0.5 rounded text-xs font-bold bg-slate-100">${statusMap[r.status] || r.status}</span></td>
+          <td class="p-2.5 text-xs text-gray-600">🕒 ${r.time} <span class="text-blue-600 font-semibold">(${r.timingStatus || '-'})</span></td>
+        </tr>
+      `).join('') || `<tr><td colspan="3" class="p-4 text-center text-gray-400">ยังไม่มีข้อมูลการลงเวลาในวันนี้</td></tr>`;
+
+      // อัปเดตหน้าผู้บริหารถ้าเปิดอยู่
+      renderExecutiveTable();
+    }
+
+    function switchTab(tab) {
+      if(tab === 'employee') {
+        document.getElementById('viewEmployee').classList.remove('hidden');
+        document.getElementById('viewExecutive').classList.add('hidden');
+        document.getElementById('btnTabEmp').className = "bg-white text-blue-900 font-bold px-4 py-2 rounded-xl text-sm shadow";
+        document.getElementById('btnTabExec').className = "bg-blue-900 text-blue-200 font-bold px-4 py-2 rounded-xl text-sm border border-blue-600";
+      } else {
+        document.getElementById('viewEmployee').classList.add('hidden');
+        document.getElementById('viewExecutive').classList.remove('hidden');
+        document.getElementById('btnTabEmp').className = "bg-blue-900 text-blue-200 font-bold px-4 py-2 rounded-xl text-sm border border-blue-600";
+        document.getElementById('btnTabExec').className = "bg-white text-blue-900 font-bold px-4 py-2 rounded-xl text-sm shadow";
+      }
+    }
+
+    function verifyExecutive() {
+      const email = document.getElementById('execEmailInput').value.trim().toLowerCase();
+      if(ALLOWED_EXECUTIVES.includes(email)) {
+        document.getElementById('execLoginCard').classList.add('hidden');
+        document.getElementById('execContentPanel').classList.remove('hidden');
+        renderExecutiveTable();
+      } else {
+        alert("❌ อีเมลนี้ไม่มีสิทธิ์เข้าถึงข้อมูลผู้บริหาร");
+      }
+    }
+
+    function logoutExec() {
+      document.getElementById('execLoginCard').classList.remove('hidden');
+      document.getElementById('execContentPanel').classList.add('hidden');
+      document.getElementById('execEmailInput').value = "";
+    }
+
+    function renderExecutiveTable() {
+      const targetDate = dateInput.value;
+      const logs = globalLogs.filter(r => r.date === targetDate);
+      const statusMap = { O: "มาทำงาน", L: "มาสาย", A: "ลาพักร้อน", P: "ลากิจ", S: "ลาป่วย", X: "ขาดงาน" };
+
+      const tbody = document.getElementById('execTableBody');
+      tbody.innerHTML = logs.map(r => {
+        let locText = "ยืนยันตำแหน่งไม่ได้";
+        let badgeColor = "bg-gray-100 text-gray-700";
+        if(r.lat && r.lng) {
+          const dist = calculateDistance(parseFloat(r.lat), parseFloat(r.lng), FACTORY_LAT, FACTORY_LNG);
+          if(dist !== null) {
+            if(dist <= ALLOWED_RADIUS) {
+              locText = `ในพื้นที่โรงงาน (ห่าง ~${Math.round(dist)}ม.)`;
+              badgeColor = "bg-emerald-100 text-emerald-800";
+            } else {
+              locText = `นอกพื้นที่ (ห่าง ~${Math.round(dist)}ม.)`;
+              badgeColor = "bg-red-100 text-red-800";
+            }
+          }
+        }
+
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3 font-medium">${r.empId} - ${r.empName}</td>
+            <td class="p-3">${statusMap[r.status] || r.status}</td>
+            <td class="p-3 font-semibold text-blue-700">${r.time}</td>
+            <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${r.timingStatus === 'ก่อนกำหนด' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}">${r.timingStatus || '-'}</span></td>
+            <td class="p-3"><span class="px-2 py-1 rounded font-semibold ${badgeColor}">${locText}</span></td>
+          </tr>
+        `;
+      }).join('') || `<tr><td colspan="5" class="p-4 text-center text-gray-400">ไม่พบข้อมูลบันทึกในวันที่เลือก</td></tr>`;
+    }
+
+    setInterval(loadData, 30000); // รีเฟรชข้อมูลอัตโนมัติทุก 30 วินาที
+    loadData();
+  </script>
+</body>
+</html>
